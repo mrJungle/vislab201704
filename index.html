@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	    //style: 'mapbox://styles/mrjungle/cj1g76dnd000t2rmjdceebhrb',
 	    center: [9.190750122070312, 
           45.46711365012762],
-    	zoom: 10,
+    	zoom: 11,
 		//pitch: 50,
         cluster: true,
         clusterMaxZoom: 15, // Max zoom to cluster points on
@@ -44,6 +44,10 @@ document.addEventListener('DOMContentLoaded', function() {
 	map.on('load', function() {
 	// punti del persorco
 	var features = map.queryRenderedFeatures({layers: ['b-2e1f3h']});
+
+	var featureMetro = _.sortBy(map.queryRenderedFeatures({layers: ['m1-m2-m3']}), function(n){ return n['id']});
+	//console.log(_.pluck(featureMetro, function(n){ return n.properties.trip_id}   ) )
+	//_.map(featureMetro, function(n){ console.log(n)});
 	// linea del percorso
 	var linestring = turf.lineString(
 		_.rest(
@@ -90,12 +94,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 var ptalFeatures = map.queryRenderedFeatures({layers: ['ptalfermate']});
-console.log(ptalFeatures)
+//console.log(ptalFeatures)
 var ptalFeatureCollection = turf.featureCollection(ptalFeatures)
-console.log(ptalFeatureCollection)
+//console.log(ptalFeatureCollection)
 var heatMap = turf.idw(ptalFeatureCollection, 'acc_index', 5.0, 0.2, 'kilometers')
 heatMap.features = _.map(heatMap.features, function(n){n.properties['color']= 'rgba(255, '+parseInt(n.properties['z'])*2+', 255, 1)'; n.properties['z'] =10*n.properties['z']; return n}   )
-console.log(heatMap)	
+//console.log(heatMap)	
 	/*
 	
 	var features = map.querySourceFeatures('');
