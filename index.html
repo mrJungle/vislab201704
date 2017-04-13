@@ -46,9 +46,16 @@ document.addEventListener('DOMContentLoaded', function() {
 	var features = map.queryRenderedFeatures({layers: ['b-2e1f3h']});
 
 	var featureMetro = _.sortBy(map.queryRenderedFeatures({layers: ['m1-m2-m3']}), function(n){ return n['id']});
-	//console.log(_.pluck(featureMetro, function(n){ return n.properties.trip_id}   ) )
+	//console.log(_.pluck(_.map(featureMetro, function(n) {return { 'nome': n.properties.trip_id, 'data': n}}), 'nome'))
+	var percorso = (_.pluck(_.map(featureMetro, function(n) {return { 'nome': n.properties.trip_id, 'data': n}}), 'nome'))[0]
+	//console.log(percorso)
+	//console.log(_.compact(_.map(featureMetro, function(n){ if(n.properties.trip_id  == percorso){ return n.properties.stop_id} })))
+	var percorsoScelto = _.map(featureMetro, function(n){ if(n.properties.trip_id  == percorso){ return n.geometry.coordinates;} });
+	//console.log(_.compact(percorsoScelto)) 
+	var percorsoLine = turf.lineString(_.compact(percorsoScelto))
 	//_.map(featureMetro, function(n){ console.log(n)});
 	// linea del percorso
+
 	var linestring = turf.lineString(
 		_.rest(
 		_.map(features, function(num){return num.geometry.coordinates}), 2
@@ -227,6 +234,23 @@ map.addLayer({
         }
     });
 
+	map.addLayer({
+        "id": "percorsoscelto",
+        "type": "line",
+        "source": {
+            "type": "geojson",
+            "data": percorsoLine,
+        },
+        "layout": {
+            "line-join": "round",
+            "line-cap": "round"
+        },
+        "paint": {
+            "line-color": "#777",
+            "line-width": 2
+        }
+    });
+
 map.addLayer({
         "id": "points",
         "type": "circle",
@@ -287,7 +311,7 @@ map.addLayer({
 
 
 
-console.log('b')
+
 
 }, false);
 
