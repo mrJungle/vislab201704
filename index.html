@@ -1,0 +1,302 @@
+<!doctype HTML>
+<html>
+    <head>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />      
+        <link rel="stylesheet" href="css/style.css">
+	<link href='https://api.mapbox.com/mapbox-gl-js/v0.35.0/mapbox-gl.css' rel='stylesheet' />
+    </head>
+    <body >
+
+<div style="height:800px; width: 100%; background:#ff0000;" id="map"></div>
+
+<button id="avvio" > AVVIO</button>
+<button id="stop" > STOP</button> 
+
+	<script src='https://api.mapbox.com/mapbox-gl-js/v0.35.0/mapbox-gl.js'></script>
+	<script src='js/turf.min.js'></script>
+	<script src='js/underscore.js'></script>
+	<script>
+	</script>
+  
+<script>
+
+
+//var t = function(){console.log('acc')};
+
+document.addEventListener('DOMContentLoaded', function() {
+
+	mapboxgl.accessToken = 'pk.eyJ1IjoibXJqdW5nbGUiLCJhIjoic08xelZyayJ9.9q5A7PRj_KPRiq5htTPmjA';
+	var map = new mapboxgl.Map({
+	    container: 'map',
+	    //style: 'mapbox://styles/mrjungle/cj1f0k09o00i22sn309rz20z2',
+	    style: 'mapbox://styles/mrjungle/cj1f28v1500k92ro1lsmuzjcg',
+	    //style: 'mapbox://styles/mrjungle/cj1g76dnd000t2rmjdceebhrb',
+	    center: [9.190750122070312, 
+          45.46711365012762],
+    	zoom: 10,
+		//pitch: 50,
+        cluster: true,
+        clusterMaxZoom: 15, // Max zoom to cluster points on
+        clusterRadius: 20 // Use small cluster radius for the heatmap look		
+
+	});
+
+	map.on('load', function() {
+	// punti del persorco
+	var features = map.queryRenderedFeatures({layers: ['b-2e1f3h']});
+	// linea del percorso
+	var linestring = turf.lineString(
+		_.rest(
+		_.map(features, function(num){return num.geometry.coordinates}), 2
+		)
+		);	
+    // avvio dello spostamento
+	var i = 0;
+	var along = turf.along(linestring, i, 'kilometers');
+
+	
+
+	var avvia = function(){
+		window.p = setInterval(function(){
+			i += 0.01		
+			if  (i >= turf.lineDistance(linestring)){
+				//console.log('stop')
+				clearInterval(p);
+			}
+			
+			if (i >= 0.15 && i < 0.16){ 
+				stop(p)
+				//clearInterval(p); setTimeout(function(){ console.log('pausa'); avvia(); }, 2000); 
+			}
+			if (i >= 1.15 && i < 1.16){
+				stop(p)
+				//clearInterval(p); setTimeout(function(){ console.log('pausa'); avvia(); }, 2000); 
+			}
+			//console.log(i, turf.lineDistance(linestring))
+			along = turf.along(linestring, i, 'kilometers');
+			map.getSource('points').setData(along);
+
+			//console.log("Hello"); 
+		}, 100);
+	}
+
+	var stop = function(p){ clearInterval(p); setTimeout(function(){ console.log('pausa'); avvia(); }, 2000); };
+	//avvia()	
+	
+	av = document.getElementById('avvio');
+	st = document.getElementById('stop');
+	av.onclick = function() { avvia(); console.log('parto') };
+	st.onclick = function() { stop(p); console.log('fermo') }; 
+
+
+var ptalFeatures = map.queryRenderedFeatures({layers: ['ptalfermate']});
+console.log(ptalFeatures)
+var ptalFeatureCollection = turf.featureCollection(ptalFeatures)
+console.log(ptalFeatureCollection)
+var heatMap = turf.idw(ptalFeatureCollection, 'acc_index', 5.0, 0.2, 'kilometers')
+heatMap.features = _.map(heatMap.features, function(n){n.properties['color']= 'rgba(255, '+parseInt(n.properties['z'])*2+', 255, 1)'; n.properties['z'] =10*n.properties['z']; return n}   )
+console.log(heatMap)	
+	/*
+	
+	var features = map.querySourceFeatures('');
+	
+	var heatMap = turf.idw(ptalFeatureCollection, 'acc_index', 60.0, 2, 'kilometers')
+	console.log('heatmap', heatMap)
+	
+
+
+
+     map.addSource("ptal", {
+        type: "geojson",
+        // Point to GeoJSON data. This example visualizes all M1.0+ earthquakes
+        // from 12/22/15 to 1/21/16 as logged by USGS' Earthquake hazards program.
+        data: ptalFeatureCollection,
+        cluster: true,
+        clusterMaxZoom: 15, // Max zoom to cluster points on
+        clusterRadius: 20 // Use small cluster radius for the heatmap look
+    });
+
+
+
+// il dataset deve essere di soli punti. 
+// per ogni punto ci deve essere un indicatore se è una fermata o meno. se lo è devo far fermare il punto
+// bisogna calcolare la velocità media del mezzo e modulare con quella lo spostamento
+// quindi ad ogni passo fermata mi devo chiedere se sono in un nodo fermata e tenermi via la velocita media del tratto
+// usare la velocita media del tratto espressa in km al secondo per spostare il punto 
+// bisogna inizializzare all'avvio, con un orario come paramentro tutti gli start dei mezzi in giorco
+// si inizializza dalla mattina e poi si deve calcolare un dove stanno in ogni momento
+
+	//console.log(linestring);
+	//console.log(turf.lineDistance(linestring))
+
+map.addLayer({
+        "id": "unclustered-points",
+        "type": "circle",
+        "source": {
+            "type": "geojson",
+            "data": ptalFeatureCollection,
+        },
+        "paint": {
+            "circle-color": 'rgba(255,255,0,0.9)',
+            "circle-radius": 50,
+            "circle-blur": 1
+        },
+        "filter": ["!=", "cluster", true]
+    }, 'waterway-label');
+
+
+
+
+
+    layers.forEach(function (layer, i) {
+        map.addLayer({
+            "id": "cluster-" + i,
+            "type": "circle",
+            "source": "ptal",
+            "paint": {
+                "circle-color": layer[1],
+                "circle-radius": 70,
+                "circle-blur": 1 // blur the circles to get a heatmap look
+            },
+            "filter": i === layers.length - 1 ?
+                [">=", "point_count", layer[0]] :
+                ["all",
+                    [">=", "point_count", layer[0]],
+                    ["<", "point_count", layers[i + 1][0]]]
+        }, 'waterway-label');
+    });
+
+	*/
+   var layers = [
+        [0, 'green'],
+        [20, 'orange'],
+        [200, 'red']
+    ];
+
+	var colora = function(z){
+		console.log(z)
+		return '#088';
+	}
+
+    map.addLayer({
+        'id': 'maine',
+        'type': 'fill',
+        'source': {
+            'type': 'geojson',
+            'data': heatMap,
+        },
+        'layout': {},
+        'paint': {
+            'fill-color': { 'property': 'z',
+                "stops": [
+
+      // "temperature" is 0   -> circle color will be blue
+      [100, 'blue'],
+
+      // "temperature" is 100 -> circle color will be red
+      [500, 'red']
+
+    ]
+
+			},//colora('z'),
+            'fill-opacity': 0.3
+        }
+    });
+
+
+
+
+map.addLayer({
+        "id": "route",
+        "type": "line",
+        "source": {
+            "type": "geojson",
+            "data": linestring,
+        },
+        "layout": {
+            "line-join": "round",
+            "line-cap": "round"
+        },
+        "paint": {
+            "line-color": "#ff0000",
+            "line-width": 2
+        }
+    });
+
+map.addLayer({
+        "id": "points",
+        "type": "circle",
+        "source": {
+            "type": "geojson",
+            "data": along
+        },
+		"paint": {
+            "circle-radius": 10,
+            "circle-color": "#007cbf"
+        }
+
+    });
+
+/*
+map.addLayer({
+        "id": "ptal",
+        "type": "fill-extrusion",
+        "source": {
+            "type": "geojson",
+            "data": heatMap
+        },
+		'paint': {
+            // See the Mapbox Style Spec for details on property functions
+            // https://www.mapbox.com/mapbox-gl-style-spec/#types-function
+            'fill-extrusion-color': {
+                // Get the fill-extrusion-color from the source 'color' property.
+                //'property': 'color',
+				'property': 'z',
+                "stops": [
+
+      // "temperature" is 0   -> circle color will be blue
+      [100, 'blue'],
+
+      // "temperature" is 100 -> circle color will be red
+      [500, 'red']
+
+    ]
+            },
+            'fill-extrusion-height': {
+                // Get fill-extrusion-height from the source 'height' property.
+                'property': 'z',
+                'type': 'identity'
+            },
+            // Make extrusions slightly opaque for see through indoor walls.
+            'fill-extrusion-opacity': 0.3
+        }
+
+
+    });
+*/
+	
+
+
+
+	});
+
+
+
+
+console.log('b')
+
+}, false);
+
+//var features = map.queryRenderedFeatures({ layers: ['my-layer-name'] });
+
+
+
+
+
+
+</script>
+
+
+
+    </body>
+</html>
